@@ -1,0 +1,6 @@
+{
+  "name": "라따뚜이 - 햄스터 도넛 먹기 웹게임",
+  "description": "귀여운 햄스터 라따뚜이와 함께 맛있는 핑크 도넛을 먹고 상한 초록 도넛을 피하는 귀여운 캐주얼 아케이드 웹게임입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

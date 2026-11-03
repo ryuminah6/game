@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Jua', 'Gowun Dodum', sans-serif;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+.font-game {
+  font-family: 'Jua', 'Gowun Dodum', sans-serif;
+}
+
+/* Custom 3D arcade buttons */
+.btn-ctrl {
+  background: linear-gradient(145deg, #ffb703, #fb8500);
+  box-shadow: 0 5px 0 #c75200, 0 8px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.05s ease;
+}
+
+.btn-ctrl:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #c75200, 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-start {
+  background: linear-gradient(145deg, #ffb703, #fb8500);
+  box-shadow: 0 6px 0 #d97706, 0 10px 15px rgba(251, 133, 0, 0.3);
+  transition: all 0.08s ease;
+}
+
+.btn-start:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #d97706;
+}

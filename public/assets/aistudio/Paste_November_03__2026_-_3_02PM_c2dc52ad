@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>라따뚜이 - 햄스터 도넛 먹기 웹게임</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
+        
+        body {
+            font-family: 'Jua', 'Gowun Dodum', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            height: 600px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #fff9e6;
+            border-radius: 1.5rem;
+        }
+
+        /* Custom Touch Button Styling */
+        .btn-ctrl {
+            background: linear-gradient(145deg, #ffb703, #fb8500);
+            box-shadow: 0 6px 0 #c75200, 0 10px 10px rgba(0, 0, 0, 0.15);
+            transition: all 0.05s ease;
+        }
+
+        .btn-ctrl:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #c75200, 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-start {
+            background: linear-gradient(145deg, #ffb703, #fb8500);
+            box-shadow: 0 6px 0 #d97706, 0 10px 15px rgba(251, 133, 0, 0.3);
+        }
+
+        .btn-start:active {
+            transform: translateY(3px);
+            box-shadow: 0 3px 0 #d97706;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
+
+    <!-- Game Main Canvas Wrap (360px Mobile Responsive Guardrail) -->
+    <div class="canvas-container bg-white rounded-3xl overflow-hidden border-4 border-amber-300 flex flex-col">
+
+        <!-- Top UI Header -->
+        <div class="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-4 bg-gradient-to-b from-amber-950/40 to-transparent text-white drop-shadow">
+            <div class="flex items-center space-x-2 bg-amber-900/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-amber-200/40">
+                <span class="text-xl">⏱️</span>
+                <span id="timerText" class="text-xl font-bold tracking-wide">60</span><span class="text-xs">초</span>
+            </div>
+            <div class="flex items-center space-x-2 bg-amber-900/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-amber-200/40">
+                <span class="text-xl">🍩</span>
+                <span id="scoreText" class="text-xl font-bold tracking-wide">0</span>
+            </div>
+        </div>
+
+        <!-- Canvas Element -->
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- Touch Controls Bar Below Canvas -->
+        <div class="absolute bottom-3 left-0 right-0 z-10 flex justify-between px-6">
+            <button id="btnLeft" class="btn-ctrl w-20 h-14 rounded-2xl flex items-center justify-center text-white text-3xl font-black active:scale-95">
+                ◀
+            </button>
+            <button id="btnRight" class="btn-ctrl w-20 h-14 rounded-2xl flex items-center justify-center text-white text-3xl font-black active:scale-95">
+                ▶
+            </button>
+        </div>
+
+        <!-- START SCREEN OVERLAY -->
+        <div id="startScreen" class="absolute inset-0 z-20 bg-amber-50/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-28 h-28 mb-3">
+                <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                    <!-- Ears -->
+                    <circle cx="52" cy="40" r="16" fill="#f39c12" stroke="#111111" stroke-width="1.8"/>
+                    <circle cx="148" cy="40" r="16" fill="#f39c12" stroke="#111111" stroke-width="1.8"/>
+                    <circle cx="52" cy="40" r="8" fill="#e67e22"/>
+                    <circle cx="148" cy="40" r="8" fill="#e67e22"/>
+
+                    <!-- Main Body -->
+                    <path d="M 45,75 C 30,105 32,155 100,165 C 168,155 170,105 155,75 C 145,40 120,30 100,30 C 80,30 55,40 45,75 Z" fill="#f39c12" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+                    
+                    <!-- Belly Area -->
+                    <path d="M 42,95 C 28,115 32,158 100,162 C 168,158 172,115 158,95 C 140,75 125,72 100,72 C 75,72 60,75 42,95 Z" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+
+                    <!-- Eyes -->
+                    <circle cx="68" cy="85" r="6" fill="#111111"/>
+                    <circle cx="132" cy="85" r="6" fill="#111111"/>
+
+                    <!-- Mouth -->
+                    <path d="M 88,96 C 92,103 98,103 100,98 C 102,103 108,103 112,96" stroke="#111111" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+                    <!-- Paws -->
+                    <ellipse cx="80" cy="118" rx="7" ry="10" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <ellipse cx="120" cy="118" rx="7" ry="10" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <ellipse cx="65" cy="168" rx="11" ry="5" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <ellipse cx="135" cy="168" rx="11" ry="5" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                </svg>
+            </div>
+            <h1 class="text-4xl font-black text-amber-900 tracking-tight mb-2">라따뚜이</h1>
+            <p class="text-amber-800 text-sm mb-6 leading-relaxed">
+                도넛을 먹어 60초간 오래 버텨보세요!<br>
+                <span class="text-pink-600 font-bold">핑크 도넛 🍩</span> (+1점 & 볼 빵빵)<br>
+                <span class="text-emerald-700 font-bold">상한 초록 도넛 🤢</span> (게임 오버!)
+            </p>
+            <button id="startBtn" class="btn-start w-full max-w-xs py-4 text-white text-2xl font-black rounded-2xl">
+                게임 시작! 🚀
+            </button>
+        </div>
+
+        <!-- GAME OVER SCREEN OVERLAY -->
+        <div id="gameOverScreen" class="hidden absolute inset-0 z-20 bg-amber-50/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div id="gameOverHamsterBox" class="w-28 h-28 mb-3">
+                <!-- Sick Defeat Hamster -->
+                <svg id="sickHamsterSvg" viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                    <circle cx="52" cy="40" r="16" fill="#88d49e" stroke="#111111" stroke-width="1.8"/>
+                    <circle cx="148" cy="40" r="16" fill="#88d49e" stroke="#111111" stroke-width="1.8"/>
+                    <path d="M 45,75 C 30,105 32,155 100,165 C 168,155 170,105 155,75 C 145,40 120,30 100,30 C 80,30 55,40 45,75 Z" fill="#88d49e" stroke="#111111" stroke-width="1.8"/>
+                    <path d="M 42,95 C 28,115 32,158 100,162 C 168,158 172,115 158,95 C 140,75 125,72 100,72 C 75,72 60,75 42,95 Z" fill="#d8f3dc" stroke="#111111" stroke-width="1.8"/>
+                    <!-- X Eyes -->
+                    <path d="M 62,78 L 74,90 M 74,78 L 62,90" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 126,78 L 138,90 M 138,78 L 126,90" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 85,108 Q 100,95 115,108" stroke="#111111" stroke-width="1.8" fill="none"/>
+                    <text x="35" y="55" font-size="20">💫</text>
+                    <text x="145" y="55" font-size="20">🤢</text>
+                </svg>
+
+                <!-- Happy Victory Hamster -->
+                <svg id="happyHamsterSvg" viewBox="0 0 200 200" class="hidden w-full h-full drop-shadow-md">
+                    <circle cx="45" cy="40" r="18" fill="#f39c12" stroke="#111111" stroke-width="1.8"/>
+                    <circle cx="155" cy="40" r="18" fill="#f39c12" stroke="#111111" stroke-width="1.8"/>
+                    <path d="M 35,70 C 15,105 15,170 100,175 C 185,170 185,105 165,70 C 145,35 120,25 100,25 C 80,25 55,35 35,70 Z" fill="#f39c12" stroke="#111111" stroke-width="1.8"/>
+                    <path d="M 32,95 C 15,120 18,172 100,172 C 182,172 185,120 168,95 C 145,70 125,65 100,65 C 75,65 55,70 32,95 Z" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+                    <path d="M 60,82 Q 70,72 80,82" stroke="#111111" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <path d="M 120,82 Q 130,72 140,82" stroke="#111111" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    <circle cx="55" cy="95" r="12" fill="#ff85a1" opacity="0.7"/>
+                    <circle cx="145" cy="95" r="12" fill="#ff85a1" opacity="0.7"/>
+                    <path d="M 85,98 Q 100,118 115,98 Z" fill="#e63946" stroke="#111111" stroke-width="1.8"/>
+                    <text x="30" y="45" font-size="20">✨</text>
+                    <text x="150" y="45" font-size="20">🎉</text>
+                </svg>
+            </div>
+
+            <h2 id="gameOverTitle" class="text-3xl font-black text-amber-900 mb-1">게임 오버!</h2>
+            <p id="gameOverSubtitle" class="text-amber-800 text-sm mb-4">상한 도넛을 먹었습니다!</p>
+            
+            <div class="bg-amber-100 px-6 py-3 rounded-2xl mb-6 border border-amber-300">
+                <span class="text-amber-800 text-sm block">최종 점수</span>
+                <span class="text-4xl font-black text-amber-900"><span id="finalScoreText">0</span> <span class="text-2xl">🍩</span></span>
+            </div>
+
+            <button id="restartBtn" class="btn-start w-full max-w-xs py-4 text-white text-2xl font-black rounded-2xl">
+                다시 하기 🔄
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Game Engine Logic Script -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Dynamic Resize Resolution
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        // Tone.js Real Munch Sound Generator
+        let crunchSynth, noisePopSynth, sickSynth;
+
+        function initAudio() {
+            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            if (typeof Tone !== 'undefined' && !crunchSynth) {
+                // Crunchy munch sound synthesizers
+                noisePopSynth = new Tone.NoiseSynth({
+                    noise: { type: 'pink' },
+                    envelope: { attack: 0.001, decay: 0.03, sustain: 0 }
+                }).toDestination();
+                noisePopSynth.volume.value = -3;
+
+                crunchSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 3,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+                }).toDestination();
+                crunchSynth.volume.value = -2;
+            }
+            if (typeof Tone !== 'undefined' && !sickSynth) {
+                sickSynth = new Tone.MonoSynth({
+                    oscillator: { type: "sawtooth" },
+                    filter: { Q: 3, type: "lowpass" },
+                    envelope: { attack: 0.02, decay: 0.3, sustain: 0.1, release: 0.2 },
+                    filterEnvelope: { attack: 0.01, decay: 0.2, baseFrequency: 120, octaves: 3 }
+                }).toDestination();
+                sickSynth.volume.value = -2;
+            }
+        }
+
+        function playYumSound() {
+            try {
+                initAudio();
+                if (crunchSynth && noisePopSynth) {
+                    const now = Tone.now();
+                    noisePopSynth.triggerAttackRelease("0.03", now);
+                    crunchSynth.triggerAttackRelease("G4", "0.04", now);
+
+                    noisePopSynth.triggerAttackRelease("0.03", now + 0.07);
+                    crunchSynth.triggerAttackRelease("C5", "0.04", now + 0.07);
+
+                    noisePopSynth.triggerAttackRelease("0.03", now + 0.14);
+                    crunchSynth.triggerAttackRelease("E5", "0.04", now + 0.14);
+                }
+            } catch (e) {}
+        }
+
+        function playSickSound() {
+            try {
+                initAudio();
+                if (sickSynth) {
+                    sickSynth.triggerAttackRelease("G2", "0.4");
+                }
+            } catch (e) {}
+        }
+
+        // Hamster Player Object
+        const hamster = {
+            x: 0,
+            y: 0,
+            speed: 5.5,
+            direction: 1,
+            eatBounce: 0
+        };
+
+        // Render Kitchen Background
+        function drawKitchenBackground() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Pastel Wall
+            const wallGrad = ctx.createLinearGradient(0, 0, 0, h * 0.7);
+            wallGrad.addColorStop(0, '#fefae0');
+            wallGrad.addColorStop(1, '#faedcd');
+            ctx.fillStyle = wallGrad;
+            ctx.fillRect(0, 0, w, h * 0.7);
+
+            // Tiles
+            ctx.strokeStyle = 'rgba(212, 163, 89, 0.25)';
+            ctx.lineWidth = 1;
+            const tileSize = 35;
+            for (let x = 0; x < w; x += tileSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h * 0.7); ctx.stroke();
+            }
+            for (let y = 0; y < h * 0.7; y += tileSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+
+            // Kitchen Counter Floor
+            const floorGrad = ctx.createLinearGradient(0, h * 0.7, 0, h);
+            floorGrad.addColorStop(0, '#e9c46a');
+            floorGrad.addColorStop(1, '#f4a261');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, h * 0.7, w, h * 0.3);
+
+            // Wood Floor Lines
+            ctx.strokeStyle = '#d4a373';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.7);
+            ctx.lineTo(w, h * 0.7);
+            ctx.stroke();
+        }
+
+        // Draw Hamster Character (Thin 1.8px Lines)
+        function drawHamster(x, y, scoreCount) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(hamster.direction, 1);
+
+            // Dynamic cheek puff size
+            const cheekPuff = Math.min(scoreCount * 3.5, 45);
+
+            // Bounce on eating
+            const bounceY = Math.sin(hamster.eatBounce * Math.PI) * -10;
+            ctx.translate(0, bounceY);
+
+            // Thin Stroke Style
+            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = '#111111';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Floor Shadow
+            ctx.save();
+            ctx.scale(1 / hamster.direction, 1);
+            ctx.beginPath();
+            ctx.ellipse(0, 36, 32 + cheekPuff * 0.3, 9, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+            ctx.fill();
+            ctx.restore();
+
+            // Feet
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(-20 - cheekPuff * 0.15, 34, 11, 5, -0.1, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(20 + cheekPuff * 0.15, 34, 11, 5, 0.1, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            // Ears
+            ctx.beginPath(); ctx.arc(-24, -36, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#e67e22'; ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(-24, -36, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#d35400'; ctx.fill();
+
+            ctx.beginPath(); ctx.arc(24, -36, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#e67e22'; ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(24, -36, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#d35400'; ctx.fill();
+
+            // Main Body Head Shape
+            const headW = 34 + cheekPuff * 0.65;
+            ctx.beginPath();
+            ctx.moveTo(-24, -36);
+            ctx.bezierCurveTo(-headW, -24, -headW, 30, 0, 34);
+            ctx.bezierCurveTo(headW, 30, headW, -24, 24, -36);
+            ctx.bezierCurveTo(14, -42, -14, -42, -24, -36);
+            ctx.fillStyle = '#e67e22';
+            ctx.fill(); ctx.stroke();
+
+            // White Cheeks & Belly
+            const cheekW = 28 + cheekPuff * 0.75;
+            ctx.beginPath();
+            ctx.moveTo(-16, -14);
+            ctx.bezierCurveTo(-cheekW, -8, -cheekW, 30, 0, 32);
+            ctx.bezierCurveTo(cheekW, 30, cheekW, -8, 16, -14);
+            ctx.bezierCurveTo(10, -18, -10, -18, -16, -14);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill(); ctx.stroke();
+
+            // Rosy Cheeks
+            if (cheekPuff > 0) {
+                ctx.fillStyle = 'rgba(255, 154, 162, 0.65)';
+                ctx.beginPath();
+                ctx.arc(-18 - cheekPuff * 0.3, 6, 7 + cheekPuff * 0.15, 0, Math.PI * 2);
+                ctx.arc(18 + cheekPuff * 0.3, 6, 7 + cheekPuff * 0.15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Dot Eyes
+            ctx.fillStyle = '#111111';
+            ctx.beginPath();
+            ctx.arc(-18 - cheekPuff * 0.1, -8, 5, 0, Math.PI * 2);
+            ctx.arc(18 + cheekPuff * 0.1, -8, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // W Mouth
+            ctx.beginPath();
+            ctx.moveTo(-7, 2);
+            ctx.quadraticCurveTo(-3, 8, 0, 4);
+            ctx.quadraticCurveTo(3, 8, 7, 2);
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            // Paws
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(-9, 14, 6, 8, -0.3, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(9, 14, 6, 8, 0.3, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Draw Donuts
+        function drawDonut(d) {
+            ctx.save();
+            ctx.translate(d.x, d.y);
+            ctx.rotate(d.rotation);
+
+            const r = d.radius;
+
+            // Dough Base
+            ctx.fillStyle = '#f4a261';
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Icing Top
+            ctx.fillStyle = (d.type === 'PINK') ? '#ff6b6b' : '#38b000';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.95, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mold / Sprinkles
+            if (d.type === 'GREEN') {
+                ctx.fillStyle = '#1b4332';
+                ctx.beginPath();
+                ctx.arc(-6, -6, 3, 0, Math.PI * 2);
+                ctx.arc(7, 4, 2.5, 0, Math.PI * 2);
+                ctx.arc(-2, 8, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                const sprinkles = [
+                    {x: -7, y: -6, col: '#ffffff'},
+                    {x: 6, y: -7, col: '#ffea00'},
+                    {x: 8, y: 5, col: '#4cc9f0'},
+                    {x: -6, y: 7, col: '#ffffff'}
+                ];
+                sprinkles.forEach(s => {
+                    ctx.fillStyle = s.col;
+                    ctx.fillRect(s.x, s.y, 4, 2);
+                });
+            }
+
+            // Hole
+            ctx.fillStyle = '#faedcd';
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Line
+            ctx.strokeStyle = '#111111';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Game State Variables
+        let gameActive = false;
+        let score = 0;
+        let timeLeft = 60;
+        let donuts = [];
+        let timerInterval = null;
+        let donutSpawnInterval = null;
+        let animationFrameId = null;
+
+        // Controls
+        const keys = { ArrowLeft: false, ArrowRight: false };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.ArrowLeft = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.ArrowRight = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.ArrowLeft = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.ArrowRight = false;
+        });
+
+        // Touch Control Listeners
+        const btnLeft = document.getElementById('btnLeft');
+        const btnRight = document.getElementById('btnRight');
+
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
+        btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.ArrowLeft = false; });
+        btnLeft.addEventListener('mousedown', () => { keys.ArrowLeft = true; });
+        btnLeft.addEventListener('mouseup', () => { keys.ArrowLeft = false; });
+
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
+        btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.ArrowRight = false; });
+        btnRight.addEventListener('mousedown', () => { keys.ArrowRight = true; });
+        btnRight.addEventListener('mouseup', () => { keys.ArrowRight = false; });
+
+        // Spawn Donuts (1 per sec)
+        function spawnDonut() {
+            if (!gameActive) return;
+            const radius = 18;
+            const x = radius + Math.random() * (canvas.width - radius * 2);
+            const type = Math.random() < 0.7 ? 'PINK' : 'GREEN';
+            donuts.push({
+                x: x,
+                y: -radius,
+                radius: radius,
+                type: type,
+                speed: (canvas.height / 2.0) / 60,
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.08
+            });
+        }
+
+        // Start Game
+        function startGame() {
+            initAudio();
+            gameActive = true;
+            score = 0;
+            timeLeft = 60;
+            donuts = [];
+            
+            hamster.x = canvas.width / 2;
+            hamster.y = canvas.height - 75;
+            hamster.eatBounce = 0;
+
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('timerText').innerText = timeLeft;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (donutSpawnInterval) clearInterval(donutSpawnInterval);
+
+            timerInterval = setInterval(() => {
+                if (!gameActive) return;
+                timeLeft--;
+                document.getElementById('timerText').innerText = timeLeft;
+                if (timeLeft <= 0) endGame(true);
+            }, 1000);
+
+            donutSpawnInterval = setInterval(spawnDonut, 1000);
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        // End Game
+        function endGame(isVictory = false) {
+            gameActive = false;
+            clearInterval(timerInterval);
+            clearInterval(donutSpawnInterval);
+
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            const gameOverSubtitle = document.getElementById('gameOverSubtitle');
+            const finalScoreText = document.getElementById('finalScoreText');
+            const sickSvg = document.getElementById('sickHamsterSvg');
+            const happySvg = document.getElementById('happyHamsterSvg');
+
+            finalScoreText.innerText = score;
+
+            if (isVictory) {
+                gameOverTitle.innerText = "성공! 🎉";
+                gameOverTitle.className = "text-3xl font-black text-amber-600 mb-1";
+                gameOverSubtitle.innerText = "60초 동안 도넛을 먹고 무사히 버텼어요!";
+                sickSvg.classList.add('hidden');
+                happySvg.classList.remove('hidden');
+            } else {
+                gameOverTitle.innerText = "게임 오버! 🤢";
+                gameOverTitle.className = "text-3xl font-black text-emerald-600 mb-1";
+                gameOverSubtitle.innerText = "상한 도넛을 먹고 병에 걸렸어요!";
+                sickSvg.classList.remove('hidden');
+                happySvg.classList.add('hidden');
+            }
+
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        // Update Frame
+        function update() {
+            if (!gameActive) return;
+
+            if (keys.ArrowLeft) {
+                hamster.x -= hamster.speed;
+                hamster.direction = -1;
+            }
+            if (keys.ArrowRight) {
+                hamster.x += hamster.speed;
+                hamster.direction = 1;
+            }
+
+            const margin = 25;
+            if (hamster.x < margin) hamster.x = margin;
+            if (hamster.x > canvas.width - margin) hamster.x = canvas.width - margin;
+
+            if (hamster.eatBounce > 0) {
+                hamster.eatBounce -= 0.08;
+                if (hamster.eatBounce < 0) hamster.eatBounce = 0;
+            }
+
+            for (let i = donuts.length - 1; i >= 0; i--) {
+                const d = donuts[i];
+                d.y += d.speed;
+                d.rotation += d.rotSpeed;
+
+                const dist = Math.hypot(hamster.x - d.x, hamster.y - d.y);
+                if (dist < d.radius + 24) {
+                    if (d.type === 'PINK') {
+                        score++;
+                        document.getElementById('scoreText').innerText = score;
+                        hamster.eatBounce = 1.0;
+                        playYumSound();
+                        donuts.splice(i, 1);
+                    } else if (d.type === 'GREEN') {
+                        playSickSound();
+                        donuts.splice(i, 1);
+                        endGame(false);
+                        return;
+                    }
+                } else if (d.y > canvas.height + 30) {
+                    donuts.splice(i, 1);
+                }
+            }
+        }
+
+        // Render Frame
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawKitchenBackground();
+
+            for (let d of donuts) {
+                drawDonut(d);
+            }
+
+            drawHamster(hamster.x, hamster.y, score);
+        }
+
+        // Loop
+        function gameLoop() {
+            if (gameActive) {
+                update();
+                draw();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Event Setup
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function() {
+            resizeCanvas();
+            drawKitchenBackground();
+            drawHamster(canvas.width / 2, canvas.height - 75, 0);
+        };
+    </script>
+</body>
+</html>
